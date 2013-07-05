@@ -1,0 +1,46 @@
+General Notes
+-------------
+need to extend SherlockFragmentActivity so can use Fragments
+
+Using Google Maps Android API
+-----------------------------
+-need to obtain API key
+	-retrieve info about app's certificate
+	-register a project in the Google APIs Console and add the Maps API as a service for the project
+	-request one or more keys
+	-add key to application and begin development
+-specify settings in the Application Manifest
+-Add map to new/existing Android project
+
+Using Google Maps for this Application
+--------------------------------------
+-incorporate a Google Maps map in the application
+-provide basic map utilities such as My Location button and Zoom controls
+-we will not be calling Google Maps app directly
+	-rather, implement own MapFragment in application and use Google's services to maintain it
+	
+Difference between Google Maps API and Google Maps Android API
+---------------------------------------------------------------
+Google Maps Android API is a child of Google Maps API
+	-maintained specifically for using Google Maps services in Android devices
+Google Maps API
+	-represents collection of APIs related to using GoogleMaps services
+	-the primary Google Maps API is the Javascript web-based version that allows for
+	embedding and manipulating Google Maps in web pages
+		-that is the version that many websites use to display Google Maps in a web browser
+		
+API Key
+-------
+In the Google Console site
+	-contains info about who owns the key, when it was activated and which Android
+	applications it may be used for, as well as the key itself
+	
+Using SupportMapFragment
+-----------------------
+Google Maps Android API v2 are contained inside MapFragments
+-MapFragment only works for API 12 or higher
+	-using Android Support library, can utilize the MapFragment
+	functionality through a class called SupportMapFragment that works
+	for API versions below 12
+	
+	
