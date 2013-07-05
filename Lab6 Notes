@@ -43,4 +43,15 @@ Google Maps Android API v2 are contained inside MapFragments
 	functionality through a class called SupportMapFragment that works
 	for API versions below 12
 	
+Error: Unable to instantiate activity ComponentInfo
+----------------------------------------------------
+To fix:
+	-since extending FragmentActivity
+		-Right click project
+		-Properties
+		-Java Build Path
+		-Order and Export tab
+		-check Android Private Libraries
+
+	
 	

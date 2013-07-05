@@ -4,11 +4,13 @@ import java.util.ArrayList;
 
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.widget.Toast;
 
 import com.actionbarsherlock.app.SherlockFragmentActivity;
 import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.MenuInflater;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.Polyline;
@@ -52,7 +54,7 @@ public class WalkAbout extends SherlockFragmentActivity{
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        initLocationData();
+        //initLocationData();
         initLayout();
     }
     
@@ -67,7 +69,12 @@ public class WalkAbout extends SherlockFragmentActivity{
      * Initializes all other data for the application.
      */
 	private void initLayout() {
-		// TODO
+		//inflate the map_layout.xml file
+		setContentView(R.layout.map_layout);
+		/*initialize m_vwMap by retrieving a reference to the SupportMagFragment
+		 * element in the XML layout file*/
+		SupportMapFragment map = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+		this.m_vwMap = map.getMap();
 	}
 	
 	@Override
