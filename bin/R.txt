@@ -336,6 +336,11 @@ int id homeAsUp 0x7f05000a
 int id hybrid 0x7f050004
 int id listMode 0x7f050006
 int id map 0x7f050036
+int id menu_enableGPS 0x7f05003b
+int id menu_load 0x7f050039
+int id menu_recording 0x7f050037
+int id menu_save 0x7f050038
+int id menu_takePicture 0x7f05003a
 int id none 0x7f050000
 int id normal 0x7f050001
 int id satellite 0x7f050002
