@@ -177,3 +177,16 @@ Shapes
 ------
 -Polyline
 	-series of liens that are drawn between certain LatLng points on a Google Map
+	
+Utilizing the Camera
+--------------------
+Two primary ways to take pictures
+	-By accessing the Camera API
+	-starting and capturing the result of a camera Intent
+-Store pictures in SD card
+	-since not all devices have the capacity for an SD card
+	-use a method for retrieving a device-specific storage path
+		-that way, if there is an SD card that can be accessed and written to then it will
+		be used
+		-but if not then some other device-specific path will be written to instead
+		

@@ -19,11 +19,17 @@ import com.actionbarsherlock.view.MenuItem;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+/**
+ * Important note:
+ * Change zoom level and circle info for actual use
+ * (since only tested it moving few feet back and forth in my room)
+ */
 /**
  * Activity that contains an interactive Google Map fragment. Users can record
  * a traveled path, mark the map with information and take pictures that become
@@ -93,10 +99,6 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 		this.m_vwMap.setMyLocationEnabled(true); //is supposed to be true, but nah
 		/* retrieve the user interface settings for the map and enable the compass */
 		this.m_vwMap.getUiSettings().setCompassEnabled(true);
-    	//initialize the path 
-		this.m_pathLine = m_vwMap.addPolyline(new PolylineOptions());
-		//set the path color
-		this.m_pathLine.setColor(Color.GREEN);
 
 	}
 	
@@ -177,7 +179,7 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 			//automatically go to the location
 			Location location = this.m_locManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
 			//get the location and move the camera to it (this might cause a bug later?)
-			//onLocationChanged(location);
+			onLocationChanged(location);
 	
 		}
 		if (!enabled) {
@@ -237,13 +239,21 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 	private void setRecordingState(boolean bRecording) {
 		if (bRecording) {
 			this.m_bRecording = true;
-			//clear the list of LatLng points
+			/*clear the list of LatLng points
+			 * also clears the path line
+			 */
 			this.m_arrPathPoints.clear();
+			//remove everything off of the map
+			this.m_vwMap.clear();
+	    	//initialize the path line 
+			this.m_pathLine = m_vwMap.addPolyline(new PolylineOptions());
+			//set the path line color
+			this.m_pathLine.setColor(Color.GREEN);
 			//initialize the list of points with the last known location
 			Location location = this.m_locManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
 			onLocationChanged(location);
 			//tell the GPS Provider to start sending Location Updates
-			Long timeChange = (long) 5000; //5 seconds
+			Long timeChange = (long) 1; //1 ms
 			Float distanceChange = (float) 0.3; // 1 foot
 			this.m_locManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, timeChange, distanceChange, this);
 		}
@@ -282,7 +292,7 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 	 * @param location The new location, as a Location object
 	 */
 	public void onLocationChanged(Location location) {
-		Toast.makeText(getBaseContext(), "in onLocationChanged", Toast.LENGTH_LONG).show();
+		Toast.makeText(getBaseContext(), "in onLocationChanged", Toast.LENGTH_SHORT).show();
 		//get the latitude value
 		double lat = location.getLatitude();
 		//get longitude value
@@ -296,18 +306,29 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 		//make the map update its view by updating the camera with the location
 /*		Float zoomLevel = (float) 14.0;
 		this.m_vwMap.moveCamera(CameraUpdateFactory.newLatLngZoom(g_location, zoomLevel));*/
-		Float zoomLevel = (float) 14.0;
+		Float zoomLevel = (float) 21.0;
 		this.m_vwMap.animateCamera(CameraUpdateFactory.newLatLngZoom(g_location, zoomLevel));
 
 		//only display toasts if recording
 		if (this.m_bRecording) {
 			String coordinates = "lat:  " + lat + " long:  " + lon;
-			Toast.makeText(getBaseContext(), coordinates, Toast.LENGTH_LONG).show();
+			Toast.makeText(getBaseContext(), coordinates, Toast.LENGTH_SHORT).show();
 		}
 		
-		//set the points for the line to draw
-		this.m_pathLine.setPoints(m_arrPathPoints);
-		
+		if (this.m_bRecording) {
+			//set the points for the line to draw
+			this.m_pathLine.setPoints(m_arrPathPoints);
+			/** Draw circles at each point of the map
+			 *  center: The point on the map where Circle will be drawn
+			 *  radius: radius (in meters) of circle
+			 *  fillColor: color of circle's inside
+			 *  strokeColor: color of circle's outside */
+			this.m_vwMap.addCircle(new CircleOptions()
+									.center(g_location)
+									.radius(1)
+									.fillColor(Color.CYAN)
+									.strokeColor(Color.BLUE));	
+		}		
 	}
 	/**
 	 * Provider will call this when the Provider is disabled.
