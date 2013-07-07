@@ -190,3 +190,19 @@ Two primary ways to take pictures
 		be used
 		-but if not then some other device-specific path will be written to instead
 		
+		
+android:required = "false"
+--------------------------
+tells Google Play Store that application uses a camera does not require it for usage		
+
+Process of taking pictures in application
+-----------------------------------------
+-Run application
+-Start recording
+-Click "Take Picture" menu item
+-Launch Camera via intent
+	-Take a picture
+	-Exit Camera
+-Handle Camera return
+	-Save picture to storage
+	
