@@ -29,6 +29,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
@@ -63,7 +64,7 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 	private boolean m_bRecording = false;
 
 	/** The radius of a Circle drawn on the map, in meters. */
-	private static final int CIRCLE_RADIUS = 30;
+	private static final int CIRCLE_RADIUS = 1; //given 30
 	
 	/** Constants for the LocationManager. */
 	private static final int MIN_TIME_CHANGE = 1000; //in milliseconds (given 3000)
@@ -75,7 +76,10 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 	private static final int PICTURE_REQUEST_CODE = 2;
 	
 	/** Zoom Level */
-	private static final Float zoomLevel = (float) 21.0;
+	private static final Float zoomLevel = (float) 21.0; //should be 14
+	
+	/** Timestamp of the picture */
+	private static  String prettyDate;
 	
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -94,6 +98,8 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
     	this.m_arrPathPoints = new ArrayList<LatLng>();
     	//initialize recording state
     	this.m_bRecording = false;
+    	//initialize picture points
+    	this.m_arrPicturePoints = new ArrayList<Marker>();
     }
     
     /**
@@ -259,6 +265,18 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 						/* picture was taken correctly and saved as an image to the path we
 						 * provided it */
 						Toast.makeText(getBaseContext(), R.string.pictureSuccess, Toast.LENGTH_SHORT).show();
+						//get the last known Location from the LocationManager
+						Location location = this.m_locManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+						//make a new Marker and add it to the map
+						double lat = location.getLatitude();
+						double lon = location.getLongitude();
+						LatLng gLocation = new LatLng(lat,lon);
+						//add a new Marker to m_arrPicturePoints with the location and title
+						Marker marker = m_vwMap.addMarker(new MarkerOptions()
+										.position(gLocation)
+										.title(prettyDate));
+						//add the marker to m_PicturePoints
+						this.m_arrPicturePoints.add(marker);
 						break;
 					}
 					case (Activity.RESULT_CANCELED):{
@@ -284,6 +302,8 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 			 * also clears the path line
 			 */
 			this.m_arrPathPoints.clear();
+			//clear the list of picture points
+			this.m_arrPicturePoints.clear();
 			//remove everything off of the map
 			this.m_vwMap.clear();
 	    	//initialize the path line 
@@ -334,39 +354,41 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 	public void onLocationChanged(Location location) {
 		//Toast.makeText(getBaseContext(), "in onLocationChanged", Toast.LENGTH_SHORT).show();
 		//get the latitude value
-		double lat = location.getLatitude();
-		//get longitude value
-		double lon = location.getLongitude();
+		if (location != null) {
+			double lat = location.getLatitude();
+			//get longitude value
+			double lon = location.getLongitude();
 
-		//Google Maps stores location in LatLng object
-		LatLng g_location = new LatLng(lat, lon);
-		//add the point t m_arrPathPoints, which records location changes
-		this.m_arrPathPoints.add(g_location);
-		Log.w("WalkAbout", "Size of path points:  " + m_arrPathPoints.size());
-		//make the map update its view by updating the camera with the location
-		this.m_vwMap.animateCamera(CameraUpdateFactory.newLatLngZoom(g_location, zoomLevel));
-
-		//only display toasts if recording
-/*		if (this.m_bRecording) {
-			String coordinates = "lat:  " + lat + " long:  " + lon;
-			Toast.makeText(getBaseContext(), coordinates, Toast.LENGTH_SHORT).show();
-		}
-		*/
-		if (this.m_bRecording) {
-			//set the points for the line to draw
-			this.m_pathLine.setPoints(m_arrPathPoints);
-			/** Draw circles at each point of the map
-			 *  center: The point on the map where Circle will be drawn
-			 *  radius: radius (in meters) of circle
-			 *  fillColor: color of circle's inside
-			 *  strokeColor: color of circle's outside */
-			this.m_vwMap.addCircle(new CircleOptions()
-									.center(g_location)
-									.radius(WalkAbout.CIRCLE_RADIUS)
-									.fillColor(Color.CYAN)
-									.strokeColor(Color.BLUE));	
-			//allow Take Picture menu item to be enabled
-		}		
+			//Google Maps stores location in LatLng object
+			LatLng g_location = new LatLng(lat, lon);
+			//add the point t m_arrPathPoints, which records location changes
+			this.m_arrPathPoints.add(g_location);
+			Log.w("WalkAbout", "Size of path points:  " + m_arrPathPoints.size());
+			//make the map update its view by updating the camera with the location
+			this.m_vwMap.animateCamera(CameraUpdateFactory.newLatLngZoom(g_location, zoomLevel));		
+			
+			//only display toasts if recording
+			/*		if (this.m_bRecording) {
+						String coordinates = "lat:  " + lat + " long:  " + lon;
+						Toast.makeText(getBaseContext(), coordinates, Toast.LENGTH_SHORT).show();
+					}
+					*/
+			if (this.m_bRecording) {
+				//set the points for the line to draw
+				this.m_pathLine.setPoints(m_arrPathPoints);
+				/** Draw circles at each point of the map
+				*  center: The point on the map where Circle will be drawn
+				*  radius: radius (in meters) of circle
+				*  fillColor: color of circle's inside
+				*  strokeColor: color of circle's outside */
+				this.m_vwMap.addCircle(new CircleOptions()
+										.center(g_location)
+										.radius(WalkAbout.CIRCLE_RADIUS)
+										.fillColor(Color.CYAN)
+										.strokeColor(Color.BLUE));	
+				//allow Take Picture menu item to be enabled
+			}	
+		}	
 	}
 	/**
 	 * Provider will call this when the Provider is disabled.
@@ -428,6 +450,7 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 			//format the date 
 			DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT);
 			String timestamp = dateFormat.format(date);
+			prettyDate = timestamp;
 			//remove the comma from the name
 			timestamp = timestamp.replace(",", "");
 			//take out the white spaces and replace : with _ (regex)
