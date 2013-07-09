@@ -1,9 +1,17 @@
 package edu.calpoly.android.walkabout;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Scanner;
 
 import android.app.Activity;
 import android.content.Context;
@@ -61,7 +69,7 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 	private LocationManager m_locManager;
 	
 	/** Whether or not recording is currently in progress. */
-	private boolean m_bRecording = false;
+	private boolean m_bRecording;
 
 	/** The radius of a Circle drawn on the map, in meters. */
 	private static final int CIRCLE_RADIUS = 1; //given 30
@@ -84,6 +92,7 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.w("WalkAbout", "creating");
         initLocationData();
         initLayout();    
     }
@@ -146,11 +155,17 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 			// save the current recorded path
 			case R.id.menu_save:{
 				Toast.makeText(getBaseContext(), "Save", Toast.LENGTH_SHORT).show();
+				//save the recording
+				saveRecording();
 				break;
 			}
 			//loads the last saved path
 			case R.id.menu_load:{
 				Toast.makeText(getBaseContext(), "Load", Toast.LENGTH_SHORT).show();
+				//set the recording state to false
+				this.setRecordingState(false);
+				//load the recording
+				loadRecording();
 				break;
 			}
 			//Launches a Camera Activity that allows you to take pictures
@@ -297,6 +312,7 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 	 */
 	private void setRecordingState(boolean bRecording) {
 		if (bRecording) {
+			Toast.makeText(getBaseContext(), "Setting recording state to true", Toast.LENGTH_SHORT).show();
 			this.m_bRecording = true;
 			/*clear the list of LatLng points
 			 * also clears the path line
@@ -319,7 +335,8 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 		}
 		//if not recording
 		if (!bRecording) {
-			Toast.makeText(getBaseContext(), "Recording has stopped", Toast.LENGTH_SHORT).show();
+			Toast.makeText(getBaseContext(), "Setting recording state to false", Toast.LENGTH_SHORT).show();
+			//Toast.makeText(getBaseContext(), "Recording has stopped", Toast.LENGTH_SHORT).show();
 			this.m_bRecording = false;
 			/** Remove the location listener updates when this Activity isn't recording
 			*   Can use "this" as Listener argument because the class implements the interface */
@@ -329,9 +346,57 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 	
 	/**
 	 * Writes important map data to a private application file.
+	 * It writes out the contents of m_arrPathPoints and m_arrPicturePoints
+	 * to a private application file.
 	 */
 	private void saveRecording() {
-		// TODO
+		/** only ever create one file and it should be truncated/cleared each time 
+		 * you write to it*/
+		//log the points
+		String pathPointsLine = "";
+		for (LatLng point: this.m_arrPathPoints) {
+			pathPointsLine = pathPointsLine + point.latitude + "," + point.longitude + ";";
+		}
+		String picturePointsLine = "";
+		for (Marker point: this.m_arrPicturePoints) {
+			//get location from the Marker
+			LatLng location = point.getPosition();
+			picturePointsLine = picturePointsLine + location.latitude+ ","+location.longitude
+								+ "," + point.getTitle();
+		}
+		Log.w("WalkAbout", picturePointsLine);
+		if (m_arrPathPoints.size() == 1) {
+			//no path to save
+			Toast.makeText(getBaseContext(), R.string.saveNoData, Toast.LENGTH_SHORT).show();
+		}
+		else {
+			try {
+				//using the string resource as the filename
+				String name = this.getString(R.string.latLngPathFileName);
+				//delete the old file if there is one
+				this.deleteFile(name);				
+				/* Opens a private file associated with this Context's application package for
+				 * writing.
+				 * Creates the file if it doesn't exist
+				 * name: the name of the file to open, cannot contain path separators 
+				 * mode: operating mode, MODE_PRIVATE is the default, where the created file
+				 * can only be accessed by the calling application (or all applications sharing
+				 * the same user ID*/
+
+				FileOutputStream outputStream = this.openFileOutput(name, Context.MODE_PRIVATE);
+
+				//make a new PrintWriter with the file as the output stream
+				PrintWriter write = new PrintWriter(outputStream);
+				//write the lines to the file
+				write.println(pathPointsLine);
+				write.print(picturePointsLine);
+				write.close();
+				Toast.makeText(getBaseContext(), R.string.saveSuccess, Toast.LENGTH_SHORT).show();
+			} catch (FileNotFoundException e) {
+				Toast.makeText(getBaseContext(), R.string.saveFailed, Toast.LENGTH_SHORT).show();
+				e.printStackTrace();
+			}
+		}
 	}
 	
 	/**
@@ -339,7 +404,54 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 	 * and initializes both the lists and the map with the new data.
 	 */
 	private void loadRecording() {
-		// TODO
+		String pathPoints;
+		String picPoints;
+		//read the file
+		String name = this.getString(R.string.latLngPathFileName);
+		try {
+			Toast.makeText(getBaseContext(), "LOADING", Toast.LENGTH_SHORT).show();
+			//open the file
+			FileInputStream stream = this.openFileInput(name);
+			/* An InputStreamReader reads bytes and decodes them into characters */
+			InputStreamReader streamReader = new InputStreamReader(stream);
+			/* From the documentation,  for top efficiency, we should wrap the InputStreamReader
+			 * within a BufferedReader*/
+			BufferedReader buffReader = new BufferedReader(streamReader);
+			//read the contents of the file
+			ArrayList<String>fileLines = new ArrayList<String>();
+			try {
+				String readString = buffReader.readLine ();
+				fileLines.add(readString);
+				while (readString != null) {
+					Log.w("WalkAbout", readString);
+					readString = buffReader.readLine();
+					fileLines.add(readString);
+				}
+			if (fileLines.size() > 1) {
+				//there are picture markers
+				pathPoints = fileLines.get(0);
+				picPoints = fileLines.get(1);
+				//repopulate the map ---> do this with a method that can take an optional number of args?
+			}
+			else {
+				//only have path points to worry about
+				pathPoints = fileLines.get(0);
+				//repopulate the map
+			}
+				
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			/*initialize m_arrPathPoints and m_arrPicturePoints to contain only the data
+			* in the file saveRecording writes out*/
+			/*repopulate the Google Map with everything from before */
+			
+		} catch (FileNotFoundException e) {
+			//if there is nothing to load
+			Toast.makeText(getBaseContext(), R.string.loadFailed, Toast.LENGTH_SHORT).show();
+			e.printStackTrace();
+		}
 	}
 	/**
 	 * Following methods are part of implementing LocationListener interface
@@ -352,9 +464,9 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 	 * @param location The new location, as a Location object
 	 */
 	public void onLocationChanged(Location location) {
-		//Toast.makeText(getBaseContext(), "in onLocationChanged", Toast.LENGTH_SHORT).show();
 		//get the latitude value
 		if (location != null) {
+			Toast.makeText(getBaseContext(), "Location changed", Toast.LENGTH_SHORT).show();
 			double lat = location.getLatitude();
 			//get longitude value
 			double lon = location.getLongitude();
@@ -389,6 +501,9 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 				//allow Take Picture menu item to be enabled
 			}	
 		}	
+		else {
+			Log.w("WalkAbout", "location is null");
+		}
 	}
 	/**
 	 * Provider will call this when the Provider is disabled.
@@ -473,5 +588,22 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 	private static Uri getOutputMediaFileUri(int filetype) {
 		File outputFile = getOutputMediaFile(filetype);
 		return Uri.fromFile(outputFile);
+	}
+	
+	/**
+	 * Helper method for reading the path points from the file
+	 * 
+	 */
+	private ArrayList<String> getPointsFromFile (String pathLine){
+		Scanner s = new Scanner(pathLine);
+		
+		ArrayList<String> coordinates = new ArrayList<String>();
+		//separate all of the coordinates in the line into simple lines
+		s.useDelimiter(";");
+		while(s.hasNext()) {
+			coordinates.add(s.next());
+		}
+		s.close();	
+		return coordinates;
 	}
 }

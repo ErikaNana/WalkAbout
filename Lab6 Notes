@@ -206,3 +206,12 @@ Process of taking pictures in application
 -Handle Camera return
 	-Save picture to storage
 	
+Private Application Files
+-------------------------
+Android allows you to create, write, read and delete local files
+-these files become private to the application that created them by default
+-you have the option to override this privacy mechanism, allowing them to be shared with
+other applications
+
+
+	
