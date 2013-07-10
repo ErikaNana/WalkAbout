@@ -358,13 +358,15 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 			pathPointsLine = pathPointsLine + point.latitude + "," + point.longitude + ";";
 		}
 		String picturePointsLine = "";
-		for (Marker point: this.m_arrPicturePoints) {
-			//get location from the Marker
-			LatLng location = point.getPosition();
-			picturePointsLine = picturePointsLine + location.latitude+ ","+location.longitude
-								+ "," + point.getTitle();
+		if (!this.m_arrPicturePoints.isEmpty()) {
+			for (Marker point: this.m_arrPicturePoints) {
+				//get location from the Marker
+				LatLng location = point.getPosition();
+				picturePointsLine = picturePointsLine + location.latitude+ ","+location.longitude
+									+ "," + point.getTitle()+";";
+			}
 		}
-		Log.w("WalkAbout", picturePointsLine);
+		Log.w("WalkAbout", "picturePointsLine:  " + picturePointsLine);
 		if (m_arrPathPoints.size() == 1) {
 			//no path to save
 			Toast.makeText(getBaseContext(), R.string.saveNoData, Toast.LENGTH_SHORT).show();
@@ -388,8 +390,11 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 				//make a new PrintWriter with the file as the output stream
 				PrintWriter write = new PrintWriter(outputStream);
 				//write the lines to the file
-				write.println(pathPointsLine);
-				write.print(picturePointsLine);
+				write.print(pathPointsLine);
+				if (!picturePointsLine.isEmpty()) {
+					Log.w("WalkAbout", "there is data in picturepointsLine");
+					write.print(picturePointsLine);
+				}
 				write.close();
 				Toast.makeText(getBaseContext(), R.string.saveSuccess, Toast.LENGTH_SHORT).show();
 			} catch (FileNotFoundException e) {
@@ -404,8 +409,7 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 	 * and initializes both the lists and the map with the new data.
 	 */
 	private void loadRecording() {
-		String pathPoints;
-		String picPoints;
+		ArrayList<String>fileLines = new ArrayList<String>();
 		//read the file
 		String name = this.getString(R.string.latLngPathFileName);
 		try {
@@ -418,39 +422,34 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 			 * within a BufferedReader*/
 			BufferedReader buffReader = new BufferedReader(streamReader);
 			//read the contents of the file
-			ArrayList<String>fileLines = new ArrayList<String>();
+
 			try {
 				String readString = buffReader.readLine ();
 				fileLines.add(readString);
 				while (readString != null) {
-					Log.w("WalkAbout", readString);
+					Log.w("WalkAbout: Load", readString);
 					readString = buffReader.readLine();
-					fileLines.add(readString);
-				}
-			if (fileLines.size() > 1) {
-				//there are picture markers
-				pathPoints = fileLines.get(0);
-				picPoints = fileLines.get(1);
-				//repopulate the map ---> do this with a method that can take an optional number of args?
-			}
-			else {
-				//only have path points to worry about
-				pathPoints = fileLines.get(0);
-				//repopulate the map
-			}
-				
+					if (readString == null) {
+						Log.w("WalkAbout","RAWR IT IS EMPTY");
+					}
+					if (readString != null) {
+						fileLines.add(readString);
+					}
+				}				
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
-			}
-			/*initialize m_arrPathPoints and m_arrPicturePoints to contain only the data
-			* in the file saveRecording writes out*/
-			/*repopulate the Google Map with everything from before */
-			
+			}			
 		} catch (FileNotFoundException e) {
 			//if there is nothing to load
 			Toast.makeText(getBaseContext(), R.string.loadFailed, Toast.LENGTH_SHORT).show();
 			e.printStackTrace();
+		}
+		if (fileLines == null) {
+			Toast.makeText(getBaseContext(), R.string.loadNoFile, Toast.LENGTH_SHORT).show();
+		}
+		else {
+			//repopulate the map and reinitialize m_arrPathPoints and m_arrPicturePoints
+			this.repopTheMap(fileLines);
 		}
 	}
 	/**
@@ -591,19 +590,131 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 	}
 	
 	/**
-	 * Helper method for reading the path points from the file
-	 * 
+	 * Helper method that uses varargs
+	 * The three periods after the final parameter's type indicate that the final 
+	 * argument may be passed as an array or as a sequence of arguments
+	 * This method repopulates the map given the lines from the file of saved data
+	 * Also reinitializes m_arrPathPoints and m_arrPicturePoints
 	 */
-	private ArrayList<String> getPointsFromFile (String pathLine){
-		Scanner s = new Scanner(pathLine);
+	private void repopTheMap (ArrayList<String> arguments) {
+		Log.w("WalkAbout", "size of arguments:  " + arguments.size());
+		String pathPoints;
+		String picPoints;
+		//clear the map of everything
+		m_arrPathPoints.clear();
+		m_arrPicturePoints.clear();
+		m_vwMap.clear();
 		
+		//add a new polyline to the map since calling clear removes the current one
+		m_pathLine = m_vwMap.addPolyline(new PolylineOptions());
+		//set the path line color
+		m_pathLine.setColor(Color.GREEN);
+		//get information for path points from the saved file
+		pathPoints = arguments.get(0);
+		//reinitialize m_arrPathPoints with the points from the file
+		m_arrPathPoints = this.convertPathPointsString(pathPoints);
+		//draw the circles for path points
+		m_pathLine.setPoints(m_arrPathPoints);
+		for (LatLng point: m_arrPathPoints) {
+			m_vwMap.addCircle(new CircleOptions()
+			.center(point)
+			.radius(WalkAbout.CIRCLE_RADIUS)
+			.fillColor(Color.CYAN)
+			.strokeColor(Color.BLUE));
+		}
+
+		if (arguments.size() > 1) {
+			//there are also pic points to worry about
+			picPoints = arguments.get(1);
+			ArrayList <Marker> markers = this.convertPicPointsString(picPoints);
+			//reinitialize the markers list
+			this.m_arrPicturePoints = markers;
+		}
+	}
+	/**
+	 * Helper method that takes in the string from the file saved, and converts them into an
+	 * LatLng points
+	 * @param pathPoints
+	 * @return ArrayList of LatLng points from the saved file
+	 */
+	private ArrayList<LatLng> convertPathPointsString (String pathPoints) {
+		Scanner s = new Scanner(pathPoints);
 		ArrayList<String> coordinates = new ArrayList<String>();
-		//separate all of the coordinates in the line into simple lines
-		s.useDelimiter(";");
+		ArrayList<LatLng>gPoints = new ArrayList<LatLng>();
+		//break down the string into separate points
+		s.useDelimiter(";|,");
+
 		while(s.hasNext()) {
 			coordinates.add(s.next());
 		}
-		s.close();	
-		return coordinates;
+		s.close();
+		//create LatLng points and add them to the array given the coordinates
+		Double lat = 0.0;
+		Double lon = 0.0;
+		for (String coord: coordinates) {
+			if (lat == 0.0) {
+				lat = Double.valueOf(coord);
+				continue;
+			}
+			if (lon == 0.0) {
+				lon = Double.valueOf(coord);
+			}
+			if (lat != 0.0 && lon != 0.0) {
+				LatLng point = new LatLng(lat, lon);
+				gPoints.add(point);
+				lat = 0.0;
+				lon = 0.0;
+			}
+		}
+		return gPoints;
+		
+	}
+	 
+	/**
+	 * Helper method to repopulate Markers on the map from the saved file
+	 * @param picPoints Saved picture Marker information
+	 * @return An ArrayList of Markers
+	 */
+	private ArrayList<Marker> convertPicPointsString (String picPoints){
+		Scanner s = new Scanner(picPoints);
+		ArrayList<Marker> markers = new ArrayList <Marker> ();
+		ArrayList<String> coordinates = new ArrayList<String>();
+		s.useDelimiter(";");
+		//break it down into a marker per line
+		while(s.hasNext()) {
+			coordinates.add(s.next());
+		}		
+		for (String coordinate: coordinates) {
+			s = new Scanner(coordinate);
+			//go through the list one by one
+			while (s.hasNext()) {
+				ArrayList <String> temp = new ArrayList <String>();
+				s.useDelimiter(",");
+				while(s.hasNext()) {
+					temp.add(s.next());
+				}
+				//go through array and make it correct
+				String title = temp.get(2) + "," + temp.get(3);
+				//clean up the array list
+				temp.remove(3);
+				temp.remove(2);
+				temp.add(2, title);
+				
+				//assign the lat, long, title and add it to list of markers
+				Double lat = Double.valueOf(temp.get(0));
+				Double lon = Double.valueOf(temp.get(1));
+				String markerTitle = temp.get(2);
+				LatLng location = new LatLng(lat, lon);
+				
+				//add the marker to the map
+				Marker marker = m_vwMap.addMarker(new MarkerOptions()
+				.position(location)
+				.title(markerTitle));
+				//add the marker to the list
+				markers.add(marker);
+			}
+		}
+		s.close();
+		return markers;
 	}
 }
