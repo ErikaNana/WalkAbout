@@ -390,7 +390,7 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 				//make a new PrintWriter with the file as the output stream
 				PrintWriter write = new PrintWriter(outputStream);
 				//write the lines to the file
-				write.print(pathPointsLine);
+				write.println(pathPointsLine);
 				if (!picturePointsLine.isEmpty()) {
 					Log.w("WalkAbout", "there is data in picturepointsLine");
 					write.print(picturePointsLine);
@@ -590,10 +590,7 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 	}
 	
 	/**
-	 * Helper method that uses varargs
-	 * The three periods after the final parameter's type indicate that the final 
-	 * argument may be passed as an array or as a sequence of arguments
-	 * This method repopulates the map given the lines from the file of saved data
+	 * Helper method that repopulates the map given the lines from the file of saved data
 	 * Also reinitializes m_arrPathPoints and m_arrPicturePoints
 	 */
 	private void repopTheMap (ArrayList<String> arguments) {
