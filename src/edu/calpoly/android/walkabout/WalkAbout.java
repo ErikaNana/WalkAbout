@@ -92,7 +92,6 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.w("WalkAbout", "creating");
         initLocationData();
         initLayout();    
     }
@@ -154,14 +153,12 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 			}
 			// save the current recorded path
 			case R.id.menu_save:{
-				Toast.makeText(getBaseContext(), "Save", Toast.LENGTH_SHORT).show();
 				//save the recording
 				saveRecording();
 				break;
 			}
 			//loads the last saved path
 			case R.id.menu_load:{
-				Toast.makeText(getBaseContext(), "Load", Toast.LENGTH_SHORT).show();
 				//set the recording state to false
 				this.setRecordingState(false);
 				//load the recording
@@ -312,7 +309,6 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 	 */
 	private void setRecordingState(boolean bRecording) {
 		if (bRecording) {
-			Toast.makeText(getBaseContext(), "Setting recording state to true", Toast.LENGTH_SHORT).show();
 			this.m_bRecording = true;
 			/*clear the list of LatLng points
 			 * also clears the path line
@@ -335,8 +331,6 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 		}
 		//if not recording
 		if (!bRecording) {
-			Toast.makeText(getBaseContext(), "Setting recording state to false", Toast.LENGTH_SHORT).show();
-			//Toast.makeText(getBaseContext(), "Recording has stopped", Toast.LENGTH_SHORT).show();
 			this.m_bRecording = false;
 			/** Remove the location listener updates when this Activity isn't recording
 			*   Can use "this" as Listener argument because the class implements the interface */
@@ -352,7 +346,6 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 	private void saveRecording() {
 		/** only ever create one file and it should be truncated/cleared each time 
 		 * you write to it*/
-		//log the points
 		String pathPointsLine = "";
 		for (LatLng point: this.m_arrPathPoints) {
 			pathPointsLine = pathPointsLine + point.latitude + "," + point.longitude + ";";
@@ -366,7 +359,6 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 									+ "," + point.getTitle()+";";
 			}
 		}
-		Log.w("WalkAbout", "picturePointsLine:  " + picturePointsLine);
 		if (m_arrPathPoints.size() == 1) {
 			//no path to save
 			Toast.makeText(getBaseContext(), R.string.saveNoData, Toast.LENGTH_SHORT).show();
@@ -392,7 +384,6 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 				//write the lines to the file
 				write.println(pathPointsLine);
 				if (!picturePointsLine.isEmpty()) {
-					Log.w("WalkAbout", "there is data in picturepointsLine");
 					write.print(picturePointsLine);
 				}
 				write.close();
@@ -413,7 +404,6 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 		//read the file
 		String name = this.getString(R.string.latLngPathFileName);
 		try {
-			Toast.makeText(getBaseContext(), "LOADING", Toast.LENGTH_SHORT).show();
 			//open the file
 			FileInputStream stream = this.openFileInput(name);
 			/* An InputStreamReader reads bytes and decodes them into characters */
@@ -427,11 +417,7 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 				String readString = buffReader.readLine ();
 				fileLines.add(readString);
 				while (readString != null) {
-					Log.w("WalkAbout: Load", readString);
 					readString = buffReader.readLine();
-					if (readString == null) {
-						Log.w("WalkAbout","RAWR IT IS EMPTY");
-					}
 					if (readString != null) {
 						fileLines.add(readString);
 					}
@@ -450,6 +436,7 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 		else {
 			//repopulate the map and reinitialize m_arrPathPoints and m_arrPicturePoints
 			this.repopTheMap(fileLines);
+			Toast.makeText(getBaseContext(), R.string.loadSuccess, Toast.LENGTH_SHORT).show();
 		}
 	}
 	/**
@@ -465,7 +452,6 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 	public void onLocationChanged(Location location) {
 		//get the latitude value
 		if (location != null) {
-			Toast.makeText(getBaseContext(), "Location changed", Toast.LENGTH_SHORT).show();
 			double lat = location.getLatitude();
 			//get longitude value
 			double lon = location.getLongitude();
@@ -474,16 +460,9 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 			LatLng g_location = new LatLng(lat, lon);
 			//add the point t m_arrPathPoints, which records location changes
 			this.m_arrPathPoints.add(g_location);
-			Log.w("WalkAbout", "Size of path points:  " + m_arrPathPoints.size());
 			//make the map update its view by updating the camera with the location
 			this.m_vwMap.animateCamera(CameraUpdateFactory.newLatLngZoom(g_location, zoomLevel));		
 			
-			//only display toasts if recording
-			/*		if (this.m_bRecording) {
-						String coordinates = "lat:  " + lat + " long:  " + lon;
-						Toast.makeText(getBaseContext(), coordinates, Toast.LENGTH_SHORT).show();
-					}
-					*/
 			if (this.m_bRecording) {
 				//set the points for the line to draw
 				this.m_pathLine.setPoints(m_arrPathPoints);
@@ -500,9 +479,6 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 				//allow Take Picture menu item to be enabled
 			}	
 		}	
-		else {
-			Log.w("WalkAbout", "location is null");
-		}
 	}
 	/**
 	 * Provider will call this when the Provider is disabled.
@@ -558,7 +534,6 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 				return null;			}
 			}
 		else {
-			Log.w("WalkAbout", "create the file");
 			//create the file
 			Date date = new Date(System.currentTimeMillis());
 			//format the date 
@@ -574,7 +549,6 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 				//create a new file with the complete path name
 				mediaFile = new File(mediaStorageDir.getPath() + File.separator + "IMG_"
 									+ timestamp + ".jpg");
-				Log.w("WalkAbout", "File name:  " + mediaFile.toString());
 			}
 		}
 		return mediaFile;
@@ -594,7 +568,6 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 	 * Also reinitializes m_arrPathPoints and m_arrPicturePoints
 	 */
 	private void repopTheMap (ArrayList<String> arguments) {
-		Log.w("WalkAbout", "size of arguments:  " + arguments.size());
 		String pathPoints;
 		String picPoints;
 		//clear the map of everything
