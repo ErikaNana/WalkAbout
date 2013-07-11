@@ -421,22 +421,20 @@ public class WalkAbout extends SherlockFragmentActivity implements android.locat
 					if (readString != null) {
 						fileLines.add(readString);
 					}
-				}				
+				}
+				this.repopTheMap(fileLines);
+				Toast.makeText(getBaseContext(), R.string.loadSuccess, Toast.LENGTH_LONG).show();
+				
 			} catch (IOException e) {
+				Log.w("WalkAbout", "IOException");
+				//if there is nothing to load
+				Toast.makeText(getBaseContext(), R.string.loadFailed, Toast.LENGTH_LONG).show();
 				e.printStackTrace();
 			}			
 		} catch (FileNotFoundException e) {
-			//if there is nothing to load
-			Toast.makeText(getBaseContext(), R.string.loadFailed, Toast.LENGTH_SHORT).show();
+			Log.w("WalkAbout", "FileNotFoundException");
+			Toast.makeText(getBaseContext(), R.string.loadNoFile, Toast.LENGTH_LONG).show();
 			e.printStackTrace();
-		}
-		if (fileLines == null) {
-			Toast.makeText(getBaseContext(), R.string.loadNoFile, Toast.LENGTH_SHORT).show();
-		}
-		else {
-			//repopulate the map and reinitialize m_arrPathPoints and m_arrPicturePoints
-			this.repopTheMap(fileLines);
-			Toast.makeText(getBaseContext(), R.string.loadSuccess, Toast.LENGTH_SHORT).show();
 		}
 	}
 	/**
